@@ -1,0 +1,23 @@
+openai
+matplotlib
+numpy
+nest_asyncio
+ipython
+# pymupdf
+paddlepaddle 
+paddleocr
+python-docx
+sqlalchemy
+python-dotenv
+llama-index==0.10
+llama-index-llms-openai
+llama-index-embeddings-openai
+llama-index-llms-azure-openai
+llama-index-embeddings-azure-openai
+llama-index-vector-stores-lancedb
+llama-index-vector-stores-mongodb
+# llama-index-embeddings-ollama
+# llama-index-llms-ollama
+llama-index-postprocessor-colbert-rerank
+llama-index-retrievers-bm25
+llama-index-storage-docstore-mongodb
