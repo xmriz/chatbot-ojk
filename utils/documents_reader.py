@@ -6,8 +6,6 @@ from paddleocr import PaddleOCR
 import fitz
 import os
 import pandas as pd
-import nest_asyncio
-nest_asyncio.apply()
 
 
 def read_documents(path: str) -> list:

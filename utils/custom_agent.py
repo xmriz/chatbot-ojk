@@ -6,7 +6,6 @@ from llama_index.core.selectors import PydanticSingleSelector
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.program import FunctionCallingProgram
-from llama_index.core.tools import QueryEngineTool
 from typing import Dict, Any, Tuple
 import json
 from typing import Sequence, List
@@ -16,9 +15,57 @@ from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import BaseTool, FunctionTool
 from openai.types.chat import ChatCompletionMessageToolCall
 
-import nest_asyncio
 
-nest_asyncio.apply()
+
+
+from llama_index.core.memory import (
+    VectorMemory,
+    SimpleComposableMemory,
+    ChatMemoryBuffer,
+)
+from llama_index.core.llms import ChatMessage
+from llama_index.embeddings.openai import OpenAIEmbedding
+
+
+from llama_index.llms.openai import OpenAI
+from llama_index.core.tools import FunctionTool
+from llama_index.core.agent import FunctionCallingAgentWorker
+
+
+# =================================================================================================
+
+
+
+# vector_memory = VectorMemory.from_defaults(
+#     vector_store=None,  # leave as None to use default in-memory vector store
+#     embed_model=OpenAIEmbedding(),
+#     retriever_kwargs={"similarity_top_k": 5},
+# )
+
+# chat_memory_buffer = ChatMemoryBuffer.from_defaults()
+
+# composable_memory = SimpleComposableMemory.from_defaults(
+#     primary_memory=chat_memory_buffer,
+#     secondary_memory_sources=[vector_memory],
+# )
+
+
+# llm = OpenAI(model="gpt-3.5-turbo-0613")
+# agent_worker = FunctionCallingAgentWorker.from_tools(
+#     [multiply_tool, mystery_tool], llm=llm, verbose=True
+# )
+# agent = agent_worker.as_agent(memory=composable_memory)
+
+
+def agent_with_memory(llm, tools, memory, system_prompt):
+    agent_worker = FunctionCallingAgentWorker.from_tools(
+        tools, llm=llm, verbose=True, system_prompt=system_prompt, 
+    )
+    agent = agent_worker.as_agent(memory=memory)
+    return agent
+
+
+# =================================================================================================
 
 
 class YourOpenAIAgent:

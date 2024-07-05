@@ -7,6 +7,7 @@ from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import Settings
+from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 
 
 class ModelName(Enum):
@@ -16,10 +17,13 @@ class ModelName(Enum):
 
 
 def get_llm_and_embedding(model_name: ModelName):
+    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+    callback_manager = CallbackManager([llama_debug])
     if model_name == ModelName.OLLAMA:
         llm = Ollama(
             model='llama3',
             temperature=0,
+            callback_manager=callback_manager,
         )
         embedding_llm = OllamaEmbedding(model_name='llama3')
 
@@ -32,6 +36,7 @@ def get_llm_and_embedding(model_name: ModelName):
             api_key=api_key,
             model='gpt-3.5-turbo',
             temperature=0.0,
+            callback_manager=callback_manager,
         )
         embedding_llm = OpenAIEmbedding(api_key=api_key)
 
@@ -50,6 +55,7 @@ def get_llm_and_embedding(model_name: ModelName):
             azure_endpoint=api_endpoint,
             azure_deployment='gpt-35-crayon',
             temperature=0,
+            callback_manager=callback_manager,
         )
         embedding_llm = AzureOpenAIEmbedding(
             api_key=api_key,

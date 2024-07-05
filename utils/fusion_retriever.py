@@ -12,11 +12,19 @@ def generate_queries(llm, query_str: str, num_queries: int = 4):
     query_gen_prompt_str = (
         "You MUST reply based on the user's query language."
         "You are a helpful assistant that generates multiple search queries based on a "
-        "single input query. Generate {num_queries} search queries, one on each line, "
+        "single or many input query. Generate {num_queries} search queries, one on each line, "
         "related to the following input query:\n"
         "Query: {query}\n"
         "Queries:\n"
     )
+    # query_gen_prompt_str = (
+    #     "You MUST reply based on the user's query language."
+    #     "You are a helpful assistant that generates multiple search queries based on a "
+    #     "single input query. Generate {num_queries} search queries, one on each line, "
+    #     "related to the following input query:\n"
+    #     "Query: {query}\n"
+    #     "Queries:\n"
+    # )
 
     query_gen_prompt = PromptTemplate(query_gen_prompt_str)
 
