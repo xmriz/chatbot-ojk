@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.query_engine import RetrieverQueryEngine
 from utils.index_store import load_vector_index
-import streamlit_app as st
+import streamlit as st
 from utils.models_definer import ModelName
 from llama_index.core import Settings
 from utils.models_definer import get_llm_and_embedding
