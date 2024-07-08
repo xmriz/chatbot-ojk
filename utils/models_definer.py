@@ -4,14 +4,14 @@ from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
+# from llama_index.llms.ollama import Ollama
+# from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import Settings
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 
 
 class ModelName(Enum):
-    OLLAMA = 'ollama'
+    # OLLAMA = 'ollama'
     OPENAI = 'openai'
     AZURE_OPENAI = 'azure_openai'
 
@@ -19,15 +19,15 @@ class ModelName(Enum):
 def get_llm_and_embedding(model_name: ModelName):
     llama_debug = LlamaDebugHandler(print_trace_on_end=True)
     callback_manager = CallbackManager([llama_debug])
-    if model_name == ModelName.OLLAMA:
-        llm = Ollama(
-            model='llama3',
-            temperature=0,
-            callback_manager=callback_manager,
-        )
-        embedding_llm = OllamaEmbedding(model_name='llama3')
+    # if model_name == ModelName.OLLAMA:
+    #     llm = Ollama(
+    #         model='llama3',
+    #         temperature=0,
+    #         callback_manager=callback_manager,
+    #     )
+    #     embedding_llm = OllamaEmbedding(model_name='llama3')
 
-    elif model_name == ModelName.OPENAI:
+    if model_name == ModelName.OPENAI:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is not set")
