@@ -1,31 +1,21 @@
 from dotenv import load_dotenv
-from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.core.agent.legacy.react.base import ReActAgent
 from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.retrievers.bm25 import BM25Retriever
-from utils.index_store import (store_vector_index, load_vector_index)
-from utils.node_parser import parse_nodes
-from utils.documents_reader import read_documents
+from utils.index_store import load_vector_index
 import streamlit as st
-import logging
-import sys
 from utils.models_definer import ModelName
 from llama_index.core import Settings
 from utils.models_definer import get_llm_and_embedding
-from llama_index.postprocessor.colbert_rerank import ColbertRerank
-
-
-
+from llama_index.core import PromptTemplate
+from llama_index.core.chat_engine import CondenseQuestionChatEngine
 import nest_asyncio
+import hmac
+
 nest_asyncio.apply()
 load_dotenv()
 
 st.set_page_config(page_title="OJK CHATBOT",
                    page_icon="🤖", layout="centered", initial_sidebar_state="auto", menu_items=None)
-st.title("Chat with the OJK BOT 💬🤖")
 
 if "messages" not in st.session_state.keys():  # Initialize the chat messages history
     st.session_state.messages = [
@@ -35,85 +25,97 @@ if "messages" not in st.session_state.keys():  # Initialize the chat messages hi
         }
     ]
 
+TOP_K = 3
+model_name = ModelName.AZURE_OPENAI
+
+llm, embedding_llm = get_llm_and_embedding(model_name=model_name)
+
+Settings.llm = llm
+Settings.embed_model = embedding_llm
+
+qa_prompt = """\
+Context information is below.
+---------------------
+{context_str}
+---------------------
+Given the context information and not prior knowledge, \
+answer the query asking about banking compliance in Indonesia. 
+Answer the question based on the context information.
+ALWAYS ANSWER WITH USER'S LANGUAGE.
+Please provide your answer with [regulation_number](file_url) in metadata 
+(if possible) in the following format:
+
+---------------------
+Answer... \n\n
+Source: [regulation_number](file_url) \n
+---------------------
+
+Query: {query_str}
+Answer: \
+"""
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password.
+    st.text_input(
+        "Password", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error("😕 Password incorrect")
+    return False
+
 
 @st.cache_resource(show_spinner=False)
-def load_agent():
-    model_name = ModelName.AZURE_OPENAI
+def load_chat_engines():
+    vector_index = load_vector_index()
+    vector_retriever = vector_index.as_retriever(similarity_top_k=TOP_K)
 
-    # ollama/openai/azure_openai
-    llm, embedding_llm = get_llm_and_embedding(model_name=model_name)
+    qa_prompt_tmpl = PromptTemplate(qa_prompt)
 
-    Settings.llm = llm
-    Settings.embed_model = embedding_llm
+    vector_query_engine = RetrieverQueryEngine.from_args(
+        retriever=vector_retriever, llm=llm, streaming=True)
 
-    index_all = load_vector_index()
-
-    vector_retriever_all = index_all.as_retriever(similarity_top_k=TOP_K)
-
-    colbert_reranker = ColbertRerank(
-        top_n=5,
-        model="colbert-ir/colbertv2.0",
-        tokenizer="colbert-ir/colbertv2.0",
-        keep_retrieval_score=True,
+    vector_query_engine.update_prompts(
+        {"response_synthesizer:text_qa_template": qa_prompt_tmpl}
     )
 
-    query_engine_all = RetrieverQueryEngine.from_args(retriever=vector_retriever_all,llm=llm, node_postprocessors=[colbert_reranker])
+    memory = ChatMemoryBuffer.from_defaults(
+        token_limit=10000,
+    )
 
-    system_prompt = """Anda adalah chatbot yang dapat membantu menjawab pertanyaan tentang berbagai jenis regulasi di Indonesia.
-
-    Anda HARUS selalu menjawab dengan BAHASA QUERY.
-    Anda TIDAK DIBENARKAN berimajinasi.
-    Anda HANYA DIBENARKAN menjawab pertanyaan berdasarkan dokumen yang telah Anda pelajari.
-    JANGAN MENGGUNAKAN informasi dari luar dokumen yang telah Anda pelajari.
-    Anda memiliki akses ke query tools untuk membantu Anda menemukan informasi yang relevan di basis data regulasi.
-    Berdasarkan informasi konteks dan bukan pengetahuan sebelumnya, jawablah pertanyaan HARUS menggunakan query tools yang tersedia.
-    Gunakan riwayat percakapan sebelumnya atau konteks di atas untuk berinteraksi dan membantu pengguna.
-
-    **Penjelasan Metadata:**
-    Metadata dokumen mencakup informasi berikut:
-    - **file_name**: Nama file dokumen
-    - **title**: Judul dokumen
-    - **sector**: Sektor yang dicakup oleh regulasi
-    - **subsector**: Subsektor yang dicakup oleh regulasi
-    - **regulation_type**: Jenis regulasi (misalnya, Surat Edaran OJK, Peraturan OJK)
-    - **regulation_number**: Nomor regulasi
-    - **effective_date**: Tanggal berlakunya regulasi
-
-    ----------------------------------------------
-    Query: {query_str}
-    Jawaban:
-    """
-
-    memory = ChatMemoryBuffer.from_defaults(token_limit=10000,)
-    
-    query_tools = [
-        QueryEngineTool(
-            query_engine=query_engine_all,
-            metadata=ToolMetadata(
-                name="bi_ojk",
-                description="Useful for retrieving answers from all documents.",
-            )
-        ),
-    ]
-
-    agent = ReActAgent.from_tools(
+    chat_engine = CondenseQuestionChatEngine.from_defaults(
         llm=llm,
         memory=memory,
-        tools=query_tools,
+        query_engine=vector_query_engine,
         verbose=True,
-        system_prompt=system_prompt,
     )
 
-    return agent
+    return chat_engine
 
-
-agent = load_agent()
 
 if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
-    st.session_state.chat_engine = agent
+    st.session_state.chat_engine = load_chat_engines()
+
+if not check_password():
+    st.stop() 
+
+st.title("Chat with the OJK BOT 💬🤖")
 
 if prompt := st.chat_input(
-    "Ask a question"
+    "Ask me a question about any Banking Compliance in Indonesia"
 ):  # Prompt for user input and save to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
@@ -129,3 +131,14 @@ if st.session_state.messages[-1]["role"] != "assistant":
         message = {"role": "assistant", "content": response_stream.response}
         # Add response to message history
         st.session_state.messages.append(message)
+
+# Add Reset button
+if st.button("Reset"):
+    st.session_state.chat_engine.reset()
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Ask me a question about any Regulation of BI and OJK",
+        }
+    ]
+    st.experimental_rerun()

@@ -32,6 +32,7 @@ def read_documents(path: str, ocr_treshold=0) -> list:
                     "regulation_type": file_metadata['jenis_regulasi'].values[0],
                     "regulation_number": file_metadata['nomor_regulasi'].values[0],
                     "effective_date": file_metadata['tanggal_berlaku'].values[0],
+                    "file_url": file_metadata['file_url'].values[0],
                 }
             )
             docs_all.append(document)
@@ -46,9 +47,9 @@ def read_documents(path: str, ocr_treshold=0) -> list:
                     "sector": file_metadata['sektor'].values[0],
                     "subsector": file_metadata['subsektor'].values[0],
                     "regulation_type": file_metadata['jenis_regulasi'].values[0],
-                    "regulation_number": file
-                    ['nomor_regulasi'].values[0],
+                    "regulation_number": file['nomor_regulasi'].values[0],
                     "effective_date": file_metadata['tanggal_berlaku'].values[0],
+                    "file_url": file_metadata['file_url'].values[0],
                 }
             )
 
@@ -68,6 +69,7 @@ def read_documents(path: str, ocr_treshold=0) -> list:
                     "regulation_type": file_metadata['jenis_regulasi'].values[0],
                     "regulation_number": file_metadata['nomor_regulasi'].values[0],
                     "effective_date": file_metadata['tanggal_berlaku'].values[0],
+                    "file_url": file_metadata['file_url'].values[0],
                 }
             )
 
@@ -102,6 +104,7 @@ def extract_text_and_images_from_page(doc, page, ocr, treshold):
     # Combine page text and image text
     return text + "\n" + image_text
 
+
 def extract_text_from_pdf(file_path, ocr, treshold):
     # Load the PDF file
     doc = fitz.open(file_path)
@@ -116,6 +119,7 @@ def extract_text_from_pdf(file_path, ocr, treshold):
 
 # =============================================================================
 
+
 def extract_from_docx(file_path):
     doc = DocxDocument(file_path)
     text = ''
@@ -124,6 +128,7 @@ def extract_from_docx(file_path):
     return text
 
 # =============================================================================
+
 
 def extract_from_excel(file_path, reader=PandasExcelReader()):
     doc = reader.load_data(file_path)
