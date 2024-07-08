@@ -10,8 +10,8 @@ from llama_index.core.ingestion import IngestionPipeline
 def parse_nodes(documents: list, llm) -> list:
     node_parser = SentenceSplitter(chunk_size=1024)
     extractors = [
-        QuestionsAnsweredExtractor(questions=5, llm=llm),
-        SummaryExtractor(summaries=['prev', 'self'], llm=llm),
+        # QuestionsAnsweredExtractor(questions=5, llm=llm),
+        # SummaryExtractor(summaries=['prev', 'self'], llm=llm),
     ]
 
     transformations = [node_parser] + extractors

@@ -21,3 +21,4 @@ llama-index-vector-stores-mongodb
 llama-index-postprocessor-colbert-rerank
 llama-index-retrievers-bm25
 llama-index-storage-docstore-mongodb
+xlrd

@@ -5,23 +5,23 @@ from llama_index.core.agent.legacy.react.base import ReActAgent
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.query_engine import RetrieverQueryEngine
-from utils.fusion_retriever import FusionRetriever
 from llama_index.retrievers.bm25 import BM25Retriever
-from utils.vector_store import (store_vector_index, load_vector_index)
-from utils.doc_store import store_docstore, load_docstore
+from utils.index_store import (store_vector_index, load_vector_index)
 from utils.node_parser import parse_nodes
 from utils.documents_reader import read_documents
 import streamlit as st
 import logging
 import sys
-from utils.models_define import ModelName
+from utils.models_definer import ModelName
 from llama_index.core import Settings
-from utils.models_define import get_llm_and_embedding
-from llama_index.agent.openai import OpenAIAgent
+from utils.models_definer import get_llm_and_embedding
+from llama_index.postprocessor.colbert_rerank import ColbertRerank
+
+
 
 import nest_asyncio
 nest_asyncio.apply()
-
+load_dotenv()
 
 st.set_page_config(page_title="OJK CHATBOT",
                    page_icon="🤖", layout="centered", initial_sidebar_state="auto", menu_items=None)
@@ -38,14 +38,6 @@ if "messages" not in st.session_state.keys():  # Initialize the chat messages hi
 
 @st.cache_resource(show_spinner=False)
 def load_agent():
-    load_dotenv()
-
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
-
-    # storing or not
-    STORE = False
-    DELETE = False
     model_name = ModelName.AZURE_OPENAI
 
     # ollama/openai/azure_openai
@@ -54,33 +46,46 @@ def load_agent():
     Settings.llm = llm
     Settings.embed_model = embedding_llm
 
-    path = './data'
+    index_all = load_vector_index()
 
-    if STORE:
-        docs_all = read_documents(path=path)
-        nodes_all = parse_nodes(documents=docs_all, llm=llm)
-        docstore = store_docstore(documents=docs_all, delete=DELETE)
-        index_all = store_vector_index(
-            nodes=nodes_all, embed_model=embedding_llm, delete=DELETE)
-    else:
-        index_all = load_vector_index()
-        docstore = load_docstore()
+    vector_retriever_all = index_all.as_retriever(similarity_top_k=TOP_K)
 
-    vector_retriever_all = index_all.as_retriever(similarity_top_k=5)
-
-    bm25_retriever = BM25Retriever.from_defaults(
-        docstore=docstore, similarity_top_k=5, verbose=True
+    colbert_reranker = ColbertRerank(
+        top_n=5,
+        model="colbert-ir/colbertv2.0",
+        tokenizer="colbert-ir/colbertv2.0",
+        keep_retrieval_score=True,
     )
 
-    fusion_retriever = FusionRetriever(
-        llm=llm,
-        retrievers=[vector_retriever_all, bm25_retriever],
-        similarity_top_k=5,
-    )
+    query_engine_all = RetrieverQueryEngine.from_args(retriever=vector_retriever_all,llm=llm, node_postprocessors=[colbert_reranker])
 
-    query_engine_all = RetrieverQueryEngine.from_args(
-        retriever=fusion_retriever, llm=llm)
+    system_prompt = """Anda adalah chatbot yang dapat membantu menjawab pertanyaan tentang berbagai jenis regulasi di Indonesia.
 
+    Anda HARUS selalu menjawab dengan BAHASA QUERY.
+    Anda TIDAK DIBENARKAN berimajinasi.
+    Anda HANYA DIBENARKAN menjawab pertanyaan berdasarkan dokumen yang telah Anda pelajari.
+    JANGAN MENGGUNAKAN informasi dari luar dokumen yang telah Anda pelajari.
+    Anda memiliki akses ke query tools untuk membantu Anda menemukan informasi yang relevan di basis data regulasi.
+    Berdasarkan informasi konteks dan bukan pengetahuan sebelumnya, jawablah pertanyaan HARUS menggunakan query tools yang tersedia.
+    Gunakan riwayat percakapan sebelumnya atau konteks di atas untuk berinteraksi dan membantu pengguna.
+
+    **Penjelasan Metadata:**
+    Metadata dokumen mencakup informasi berikut:
+    - **file_name**: Nama file dokumen
+    - **title**: Judul dokumen
+    - **sector**: Sektor yang dicakup oleh regulasi
+    - **subsector**: Subsektor yang dicakup oleh regulasi
+    - **regulation_type**: Jenis regulasi (misalnya, Surat Edaran OJK, Peraturan OJK)
+    - **regulation_number**: Nomor regulasi
+    - **effective_date**: Tanggal berlakunya regulasi
+
+    ----------------------------------------------
+    Query: {query_str}
+    Jawaban:
+    """
+
+    memory = ChatMemoryBuffer.from_defaults(token_limit=10000,)
+    
     query_tools = [
         QueryEngineTool(
             query_engine=query_engine_all,
@@ -91,40 +96,14 @@ def load_agent():
         ),
     ]
 
-    system_prompt = """
-    You are a chatbot able to help answer questions about various types of regulations in Indonesia.
-
-    You MUST always answer WITH BAHASA INDONESIA.
-    You are NOT ALLOWED to hallucinate.
-    You MUST FOLLOW the answer from query engine.
-    You are ONLY ALLOWED to answer the question based on documents that you have been trained on.
-    You have access to a query tool to help you find relevant information in the regulations database.
-    Given the context information and not prior knowledge, answer the query using the query tool provided.
-    Use the previous chat history, or the context above, to interact and help the user.
-    ----------------------------------------------
-    Query: {query_str}
-    Answer:
-    """
-
-    chat_store = SimpleChatStore()
-    memory = ChatMemoryBuffer.from_defaults(
-        token_limit=10000,
-        chat_store=chat_store,
-        chat_store_key="user1",
-    )
-
-    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
-    callback_manager = CallbackManager([llama_debug])
-
     agent = ReActAgent.from_tools(
         llm=llm,
         memory=memory,
         tools=query_tools,
         verbose=True,
         system_prompt=system_prompt,
-        callback_manager=callback_manager,
     )
-    
+
     return agent
 
 

@@ -16,8 +16,6 @@ from llama_index.core.tools import BaseTool, FunctionTool
 from openai.types.chat import ChatCompletionMessageToolCall
 
 
-
-
 from llama_index.core.memory import (
     VectorMemory,
     SimpleComposableMemory,
@@ -33,7 +31,6 @@ from llama_index.core.agent import FunctionCallingAgentWorker
 
 
 # =================================================================================================
-
 
 
 # vector_memory = VectorMemory.from_defaults(
@@ -59,7 +56,7 @@ from llama_index.core.agent import FunctionCallingAgentWorker
 
 def agent_with_memory(llm, tools, memory, system_prompt):
     agent_worker = FunctionCallingAgentWorker.from_tools(
-        tools, llm=llm, verbose=True, system_prompt=system_prompt, 
+        tools, llm=llm, verbose=True, system_prompt=system_prompt,
     )
     agent = agent_worker.as_agent(memory=memory)
     return agent
@@ -243,23 +240,23 @@ class YourOpenAIAgent:
 #     return state, is_done
 
 
-# def custom_agent(llm, query_engine_tools, verbose=False, prompt_str=DEFAULT_PROMPT_STR):
-#     router_query_engine = RouterQueryEngine(
-#         selector=PydanticSingleSelector.from_defaults(llm=llm),
-#         query_engine_tools=query_engine_tools,
-#         verbose=verbose,
-#     )
-#     agent = FnAgentWorker(
-#         fn=retry_agent_fn,
-#         initial_state={
-#             "prompt_str": prompt_str,
-#             "llm": llm,
-#             "router_query_engine": router_query_engine,
-#             "current_reasoning": [],
-#             "verbose": verbose,
-#         },
-#     ).as_agent()
-#     return agent
+def custom_agent(llm, query_engine_tools, prompt_str, verbose=False,):
+    router_query_engine = RouterQueryEngine(
+        selector=PydanticSingleSelector.from_defaults(llm=llm),
+        query_engine_tools=query_engine_tools,
+        verbose=verbose,
+    )
+    agent = FnAgentWorker(
+        fn=retry_agent_fn,
+        initial_state={
+            "prompt_str": prompt_str,
+            "llm": llm,
+            "router_query_engine": router_query_engine,
+            "current_reasoning": [],
+            "verbose": verbose,
+        },
+    ).as_agent()
+    return agent
 
 
 # =================================================================================================
