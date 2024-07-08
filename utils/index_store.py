@@ -4,6 +4,9 @@ from llama_index.core import (
     StorageContext,
 )
 
+import shutil
+
+
 from llama_index.core import load_index_from_storage
 
 import pymongo
@@ -35,12 +38,12 @@ def store_vector_index(embed_model, nodes=None, delete=False):
             f"Deleted {delete_result.deleted_count} index from the collection.")
 
     # Initialize MongoDBAtlasVectorSearch
-    vector_store_all = MongoDBAtlasVectorSearch(
+    vector_store = MongoDBAtlasVectorSearch(
         mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
 
     # Initialize StorageContext
     storage_context_all = StorageContext.from_defaults(
-        vector_store=vector_store_all)
+        vector_store=vector_store)
 
     if not nodes:
         raise ValueError("Nodes must be provided to store the index.")
@@ -59,86 +62,89 @@ def load_vector_index():
 
     # Database and collection names
     db_name = "vector_db"
-    collection_name = "index_bi_ojk"
+    collection_name = "vector_index_bi_ojk"
 
     # Initialize MongoDBAtlasVectorSearch
-    vector_store_all = MongoDBAtlasVectorSearch(
+    vector_store = MongoDBAtlasVectorSearch(
         mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
 
     # Load the VectorStoreIndex
     vector_index = VectorStoreIndex.from_vector_store(
-        vector_store=vector_store_all)
+        vector_store=vector_store)
 
     print("Loading the vector index completed.")
 
     return vector_index
 
 
-def store_summary_index(llm, embed_model, nodes=None, delete=False):
-    uri = os.getenv("DATABASE_URI")
-    # # Initialize MongoDB client
-    # mongodb_client = pymongo.MongoClient(uri)
+# def store_summary_index(llm, embed_model, nodes=None, delete=False):
+#     # uri = os.getenv("DATABASE_URI")
+#     # # Initialize MongoDB client
+#     # mongodb_client = pymongo.MongoClient(uri)
 
-    # # Database and collection names
-    # db_name = "vector_db"
-    # collection_name = "summary_index_bi_ojk"
+#     # # Database and collection names
+#     # db_name = "vector_db"
+#     # collection_name = "summary_index_bi_ojk"
 
-    # if delete:
-    #     # Get the database and collection
-    #     db = mongodb_client[db_name]
-    #     collection = db[collection_name]
+#     # if delete:
+#     #     # Get the database and collection
+#     #     db = mongodb_client[db_name]
+#     #     collection = db[collection_name]
 
-    #     # Delete all documents in the collection
-    #     delete_result = collection.delete_many({})
-    #     print(
-    #         f"Deleted {delete_result.deleted_count} index from the collection.")
+#     #     # Delete all documents in the collection
+#     #     delete_result = collection.delete_many({})
+#     #     print(
+#     #         f"Deleted {delete_result.deleted_count} index from the collection.")
 
-    # # Initialize MongoDBAtlasVectorSearch
-    # vector_store = MongoDBAtlasVectorSearch(
-    #     mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
+#     # # Initialize MongoDBAtlasVectorSearch
+#     # vector_store = MongoDBAtlasVectorSearch(
+#     #     mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
 
-    # # Initialize StorageContext
-    # storage_context = StorageContext.from_defaults(
-    #     vector_store=vector_store)
+#     # # Initialize StorageContext
+#     # storage_context = StorageContext.from_defaults(
+#     #     vector_store=vector_store)
 
-    
+#     # vector_store
+#     if not nodes:
+#         raise ValueError("Nodes must be provided to store the index.")
+#     else:
+#         # delete the index directory
+#         if delete:
+#             shutil.rmtree("./index")
 
-    if not nodes:
-        raise ValueError("Nodes must be provided to store the index.")
-    else:
-        response_synthesizer = get_response_synthesizer(
-            response_mode="tree_summarize", use_async=True
-        )
-        summary_index = DocumentSummaryIndex(
-            nodes=nodes, show_progress=True, embed_model=embed_model, response_synthesizer=response_synthesizer, llm=llm)
+#         response_synthesizer = get_response_synthesizer(
+#             response_mode="tree_summarize", use_async=True
+#         )
+#         summary_index = DocumentSummaryIndex(
+#             nodes=nodes, show_progress=True, embed_model=embed_model, response_synthesizer=response_synthesizer, llm=llm)
 
-        summary_index.storage_context.persist("index")
-        print("Storing the summary index completed.")
+#         summary_index.storage_context.persist("index")
+#         print("Storing the summary index completed.")
 
-    return summary_index
+#     return summary_index
 
 
-def load_summary_index():
-    # uri = os.getenv("DATABASE_URI")
-    # # Initialize MongoDB client
-    # mongodb_client = pymongo.MongoClient(uri)
+# def load_summary_index():
+#     # uri = os.getenv("DATABASE_URI")
+#     # # Initialize MongoDB client
+#     # mongodb_client = pymongo.MongoClient(uri)
 
-    # # Database and collection names
-    # db_name = "vector_db"
-    # collection_name = "summary_index_bi_ojk"
+#     # # Database and collection names
+#     # db_name = "vector_db"
+#     # collection_name = "summary_index_bi_ojk"
 
-    # # Initialize MongoDBAtlasVectorSearch
-    # vector_store = MongoDBAtlasVectorSearch(
-    #     mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
+#     # # Initialize MongoDBAtlasVectorSearch
+#     # vector_store = MongoDBAtlasVectorSearch(
+#     #     mongodb_client=mongodb_client, db_name=db_name, collection_name=collection_name, index_name='vector_index')
 
-    # storage_context = StorageContext.from_defaults(vector_store=vector_store)
+#     # storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
-    # # Load the VectorStoreIndex
-    # summary_index = load_index_from_storage(storage_context=storage_context)
+#     # # Load the VectorStoreIndex
+#     # summary_index = load_index_from_storage(storage_context=storage_context)
 
-    storage_context = StorageContext.from_defaults(persist_dir="index")
-    summary_index = load_index_from_storage(storage_context)
+#     storage_context = StorageContext.from_defaults(persist_dir="index")
+#     summary_index = load_index_from_storage(storage_context)
 
-    print("Loading the summary index completed.")
+#     print("Loading the summary index completed.")
 
-    return summary_index
+#     return summary_index
