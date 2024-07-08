@@ -9,6 +9,7 @@ paddleocr
 python-docx
 sqlalchemy
 python-dotenv
+pydantic==1.10.9
 llama-index==0.10
 llama-index-llms-openai
 llama-index-embeddings-openai
