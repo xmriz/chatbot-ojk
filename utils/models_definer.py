@@ -1,4 +1,3 @@
-import os
 from enum import Enum
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -16,7 +15,7 @@ class ModelName(Enum):
     AZURE_OPENAI = 'azure_openai'
 
 
-def get_llm_and_embedding(model_name: ModelName):
+def get_llm_and_embedding(model_name: ModelName, api_key: str = None, api_version: str = None, api_endpoint: str = None):
     llama_debug = LlamaDebugHandler(print_trace_on_end=True)
     callback_manager = CallbackManager([llama_debug])
     # if model_name == ModelName.OLLAMA:
@@ -28,7 +27,6 @@ def get_llm_and_embedding(model_name: ModelName):
     #     embedding_llm = OllamaEmbedding(model_name='llama3')
 
     if model_name == ModelName.OPENAI:
-        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is not set")
 
@@ -41,10 +39,6 @@ def get_llm_and_embedding(model_name: ModelName):
         embedding_llm = OpenAIEmbedding(api_key=api_key)
 
     elif model_name == ModelName.AZURE_OPENAI:
-        api_key = os.getenv('AZURE_OPENAI_KEY')
-        api_version = os.getenv("API_VERSION")
-        api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-
         if not api_key or not api_version or not api_endpoint:
             raise ValueError(
                 "One or more Azure OpenAI environment variables (AZURE_OPENAI_KEY, API_VERSION, AZURE_OPENAI_ENDPOINT) are not set")
