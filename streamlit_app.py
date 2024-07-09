@@ -141,4 +141,4 @@ if st.button("Reset"):
             "content": "Ask me a question about any Regulation of BI and OJK",
         }
     ]
-    st.experimental_rerun()
+    st.rerun()
