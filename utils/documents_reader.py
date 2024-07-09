@@ -90,17 +90,19 @@ def extract_text_and_images_from_page(doc, page, ocr, treshold):
         xref = image_info[0]
         image_dict = doc.extract_image(xref)
         image_bytes = image_dict['image']
-        # Use PaddleOCR to extract text from the image
-        ocr_result = ocr.ocr(image_bytes)
-        # Check if OCR result is valid before processing
-        if ocr_result and ocr_result != [None]:
-            for result in ocr_result:
-                for res in result:
-                    text_tuple = res[1]
-                    text_string = text_tuple[0]
-                    text_confidence = text_tuple[1]  # For confidence threshold
-                    if text_confidence > treshold:
-                        image_text += text_string + '\n'
+
+        if image_bytes is not None:
+            # Use PaddleOCR to extract text from the image
+            ocr_result = ocr.ocr(image_bytes)
+            # Check if OCR result is valid before processing
+            if ocr_result and ocr_result != [None]:
+                for result in ocr_result:
+                    for res in result:
+                        text_tuple = res[1]
+                        text_string = text_tuple[0]
+                        text_confidence = text_tuple[1]  # For confidence threshold
+                        if text_confidence > treshold:
+                            image_text += text_string + '\n'
     # Combine page text and image text
     return text + "\n" + image_text
 

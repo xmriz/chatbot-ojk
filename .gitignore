@@ -5,3 +5,4 @@ json_data/
 .streamlit/
 rag
 __pycache__/
+.env
