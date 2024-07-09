@@ -4,22 +4,19 @@ from llama_index.core import (
     StorageContext,
 )
 
-import shutil
-
-
 from llama_index.core import load_index_from_storage
 
 import pymongo
 from llama_index.vector_stores.mongodb import MongoDBAtlasVectorSearch
 from llama_index.core import VectorStoreIndex, StorageContext
-import os
-
 from llama_index.core import get_response_synthesizer
 from llama_index.core import DocumentSummaryIndex
 
 
-def store_vector_index(embed_model, nodes=None, delete=False):
-    uri = os.getenv("DATABASE_URI")
+def store_vector_index(embed_model, nodes=None, delete=False, uri=None):
+    if not uri:
+        raise ValueError("Database URI must be provided.")
+
     # Initialize MongoDB client
     mongodb_client = pymongo.MongoClient(uri)
 
@@ -55,8 +52,9 @@ def store_vector_index(embed_model, nodes=None, delete=False):
     return index_all
 
 
-def load_vector_index():
-    uri = os.getenv("DATABASE_URI")
+def load_vector_index(uri=None):
+    if not uri:
+        raise ValueError("Database URI must be provided.")
     # Initialize MongoDB client
     mongodb_client = pymongo.MongoClient(uri)
 

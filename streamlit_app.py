@@ -14,6 +14,10 @@ import hmac
 nest_asyncio.apply()
 load_dotenv()
 
+api_key = st.secrets["azure_openai_key"]
+api_endpoint = st.secrets["azure_openai_endpoint"]
+api_version = st.secrets["api_version"]
+
 st.set_page_config(page_title="OJK CHATBOT",
                    page_icon="🤖", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
@@ -28,7 +32,7 @@ if "messages" not in st.session_state.keys():  # Initialize the chat messages hi
 TOP_K = 3
 model_name = ModelName.AZURE_OPENAI
 
-llm, embedding_llm = get_llm_and_embedding(model_name=model_name)
+llm, embedding_llm = get_llm_and_embedding(model_name=model_name, api_key=api_key, api_version=api_version, api_endpoint=api_endpoint)
 
 Settings.llm = llm
 Settings.embed_model = embedding_llm
@@ -80,7 +84,8 @@ def check_password():
 
 @st.cache_resource(show_spinner=False)
 def load_chat_engines():
-    vector_index = load_vector_index()
+    uri = st.secrets["db_uri"]
+    vector_index = load_vector_index(uri=uri)
     vector_retriever = vector_index.as_retriever(similarity_top_k=TOP_K)
 
     qa_prompt_tmpl = PromptTemplate(qa_prompt)
