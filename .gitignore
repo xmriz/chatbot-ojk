@@ -1,5 +1,4 @@
 data/
-temp_data/
 json_data/
 .env
 .streamlit/
