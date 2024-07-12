@@ -8,10 +8,10 @@ from llama_index.core import Settings
 from utils.models_definer import get_llm_and_embedding
 from llama_index.core import PromptTemplate
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
-import nest_asyncio
+# import nest_asyncio
 import hmac
 
-nest_asyncio.apply()
+# nest_asyncio.apply()
 load_dotenv()
 
 api_key = st.secrets["azure_openai_key"]

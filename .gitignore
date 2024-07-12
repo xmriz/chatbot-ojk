@@ -2,6 +2,6 @@ data/
 json_data/
 .env
 .streamlit/
-rag
 __pycache__/
+rag
 .env
